@@ -266,6 +266,52 @@ body, [data-testid="stApp"] {{
     color: {text} !important;
 }}
 
+/* ── Download button pinned to sidebar bottom ── */
+[data-testid="stSidebar"] [data-testid="stDownloadButton"] {{
+    position: fixed !important;
+    bottom: 1rem !important;
+    left: 1rem !important;
+    width: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 999 !important;
+}}
+[data-testid="stSidebar"] [data-testid="stDownloadButton"] button {{
+    width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    font-size: 1.3rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
+    position: relative !important;
+}}
+[data-testid="stSidebar"] [data-testid="stDownloadButton"] button::after {{
+    content: "Export Excel" !important;
+    position: absolute !important;
+    left: calc(100% + 10px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: {card2} !important;
+    color: {text} !important;
+    border: 1px solid {border} !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.15s ease !important;
+}}
+[data-testid="stSidebar"] [data-testid="stDownloadButton"] button:hover::after {{
+    opacity: 1 !important;
+}}
+
 """
 
 _DARK = dict(
@@ -319,6 +365,27 @@ def render_logo() -> None:
                 break
     if logo_file:
         st.logo(str(logo_file), size="large")
+
+    # Download Excel button (always at bottom of sidebar)
+    _render_download_button()
+
+
+def _render_download_button() -> None:
+    """Render a sidebar button pinned to the bottom to download the active location's Excel file."""
+    import os
+    from modules.excel_sync import EXCEL_PATH, _active_location
+    if os.path.exists(EXCEL_PATH):
+        with open(EXCEL_PATH, "rb") as f:
+            data = f.read()
+        filename = f"tournament_{_active_location.lower()}.xlsx"
+        st.sidebar.download_button(
+            label="📥",
+            data=data,
+            file_name=filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    else:
+        st.sidebar.caption("No data file yet for this location.")
 
 
 def render_df(styler_or_df, hide_index: bool = True) -> None:
