@@ -48,20 +48,17 @@ def admin_widget() -> None:
         st.sidebar.success("Admin mode")
         if st.sidebar.button("Log out", key="admin_logout"):
             st.session_state["is_admin"] = False
-            st.experimental_rerun()
+            st.rerun()
         return
 
-    # Use a form so the password value is submitted atomically with the
-    # unlock action. This avoids racey behavior where the button click
-    # might not carry the latest text_input value on the first click.
-    submitted = False
+    # Use a form so the password value is submitted atomically on one click.
     with st.sidebar.form("admin_form", clear_on_submit=True):
-        pw = st.text_input("Admin password", type="password", key="_admin_pw_input")
-        submitted = st.form_submit_button("Unlock admin", key="admin_unlock")
+        pw = st.text_input("Admin password", type="password")
+        submitted = st.form_submit_button("Unlock admin")
 
     if submitted:
         if _check_password(pw):
             st.session_state["is_admin"] = True
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.sidebar.error("Invalid password")
