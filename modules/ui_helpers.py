@@ -7,6 +7,7 @@ import streamlit as st
 from pathlib import Path
 from matplotlib.colors import LinearSegmentedColormap
 from .excel_sync import LOCATIONS, set_location
+from . import auth
 
 _LOGO_DIR     = Path(__file__).parent.parent / "assets" / "logo"
 _ALLOWED_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
@@ -355,6 +356,12 @@ def render_logo() -> None:
         st.session_state["_location"] = selected
         st.rerun()
     set_location(st.session_state["_location"])
+
+    # Admin login (shows unlock widget in the sidebar)
+    try:
+        auth.admin_widget()
+    except Exception:
+        pass
 
     # Logo
     logo_file = None

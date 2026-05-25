@@ -8,6 +8,7 @@ import pandas as pd
 from modules.excel_sync import load_sheet, AWARDS
 from modules.match_recorder import record_result, save_match_awards, get_match_awards, edit_match_result
 from modules.ui_helpers import render_logo
+from modules import auth
 
 st.set_page_config(page_title="Record Match · Carrom Tournament", page_icon="🎮", layout="wide", initial_sidebar_state="expanded")
 render_logo()
@@ -161,13 +162,16 @@ def _edit_match_dialog(edit_mid: int) -> None:
 
     st.markdown("---")
     csave, _ = st.columns([1, 3])
-    if csave.button("💾 Save Changes", type="primary", width='stretch'):
-        try:
-            edit_match_result(edit_mid, new_sa, new_sb, edit_award_map)
-            st.success("Match updated successfully!")
-            st.rerun()
-        except (ValueError, RuntimeError) as e:
-            st.error(str(e))
+    if auth.is_admin():
+        if csave.button("💾 Save Changes", type="primary", width='stretch'):
+            try:
+                edit_match_result(edit_mid, new_sa, new_sb, edit_award_map)
+                st.success("Match updated successfully!")
+                st.rerun()
+            except (ValueError, RuntimeError) as e:
+                st.error(str(e))
+    else:
+        csave.caption("Admin-only: unlock to save changes.")
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +231,7 @@ with schedule_col:
                     f" → **{winner}**{score_str}",
                     unsafe_allow_html=True,
                 )
-                if _ec.button("✎", key=f"edit_btn_{int(row['match_id'])}", help="Edit this match"):
+                if auth.is_admin() and _ec.button("✎", key=f"edit_btn_{int(row['match_id'])}", help="Edit this match"):
                     _edit_match_dialog(int(row["match_id"]))
             else:
                 st.markdown(f"{icon}&nbsp; **{ta}** vs **{tb}**")
@@ -359,18 +363,21 @@ with record_col:
         st.markdown("---")
         col_submit, col_spacer = st.columns([1, 3])
         with col_submit:
-            if st.button("✅ Save Result & Awards", type="primary", width='stretch'):
-                try:
-                    record_result(selected_match_id, winner_id, team_a_score=score_a, team_b_score=score_b)
-                    if award_map:
-                        save_match_awards(selected_match_id, award_map)
-                    st.success(
-                        f"Match recorded! **{_tname(winner_id)}** wins.  \n"
-                        f"Awards saved for {len(award_map)} player(s)."
-                    )
-                    st.balloons()
-                    st.rerun()
-                except (ValueError, RuntimeError) as e:
-                    st.error(str(e))
+            if auth.is_admin():
+                if st.button("✅ Save Result & Awards", type="primary", width='stretch'):
+                    try:
+                        record_result(selected_match_id, winner_id, team_a_score=score_a, team_b_score=score_b)
+                        if award_map:
+                            save_match_awards(selected_match_id, award_map)
+                        st.success(
+                            f"Match recorded! **{_tname(winner_id)}** wins.  \n"
+                            f"Awards saved for {len(award_map)} player(s)."
+                        )
+                        st.balloons()
+                        st.rerun()
+                    except (ValueError, RuntimeError) as e:
+                        st.error(str(e))
+            else:
+                st.info("Unlock admin to record match results.")
 
 

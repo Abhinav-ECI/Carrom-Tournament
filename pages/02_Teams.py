@@ -7,6 +7,7 @@ import streamlit as st
 from modules.excel_sync import load_sheet
 from modules.team_builder import build_balanced_teams, rename_team, reset_teams, get_team_players
 from modules.ui_helpers import render_logo, get_cmaps, render_df
+from modules import auth
 
 st.set_page_config(page_title="Teams · Carrom Tournament", page_icon="🤝", layout="wide", initial_sidebar_state="expanded")
 render_logo()
@@ -71,13 +72,16 @@ if not teams_exist:
         skill_spread = round(preview_df["Avg Skill"].max() - preview_df["Avg Skill"].min(), 2)
         st.caption(f"Average skill spread across all teams: **{skill_spread}** points")
 
-        if st.button("✅ Confirm & Build Teams", type="primary", width='stretch'):
-            try:
-                build_balanced_teams()
-                st.success(f"Built **{n // 2} balanced teams** successfully!")
-                st.rerun()
-            except (RuntimeError, ValueError) as e:
-                st.error(str(e))
+        if auth.is_admin():
+            if st.button("✅ Confirm & Build Teams", type="primary", width='stretch'):
+                try:
+                    build_balanced_teams()
+                    st.success(f"Built **{n // 2} balanced teams** successfully!")
+                    st.rerun()
+                except (RuntimeError, ValueError) as e:
+                    st.error(str(e))
+        else:
+            st.info("Unlock admin to build teams.")
 
 else:
     # ---------------------------------------------------------------------------
@@ -110,15 +114,18 @@ else:
 
             # Rename form (locked once matches are scheduled)
             if not matches_exist:
-                with st.form(f"rename_{team_id}"):
-                    new_name = st.text_input("Rename team", value=team_name, max_chars=40)
-                    if st.form_submit_button("💾 Save Name"):
-                        try:
-                            rename_team(team_id, new_name)
-                            st.success(f"Renamed to **{new_name}**.")
-                            st.rerun()
-                        except (ValueError, RuntimeError) as e:
-                            st.error(str(e))
+                if auth.is_admin():
+                    with st.form(f"rename_{team_id}"):
+                        new_name = st.text_input("Rename team", value=team_name, max_chars=40)
+                        if st.form_submit_button("💾 Save Name"):
+                            try:
+                                rename_team(team_id, new_name)
+                                st.success(f"Renamed to **{new_name}**.")
+                                st.rerun()
+                            except (ValueError, RuntimeError) as e:
+                                st.error(str(e))
+                else:
+                    st.caption("Unlock admin to rename teams.")
             else:
                 st.caption("Team names are locked after the schedule is generated.")
 
@@ -130,13 +137,16 @@ else:
     if not matches_exist:
         with st.expander("⚠️ Reset Teams"):
             st.warning("This will wipe all teams and clear player assignments. Player list is kept.")
-            if st.button("🔄 Reset Teams", type="secondary"):
-                try:
-                    reset_teams()
-                    st.success("Teams reset. Head to Players to adjust the list, then rebuild.")
-                    st.rerun()
-                except RuntimeError as e:
-                    st.error(str(e))
+            if auth.is_admin():
+                if st.button("🔄 Reset Teams", type="secondary"):
+                    try:
+                        reset_teams()
+                        st.success("Teams reset. Head to Players to adjust the list, then rebuild.")
+                        st.rerun()
+                    except RuntimeError as e:
+                        st.error(str(e))
+            else:
+                st.caption("Unlock admin to reset teams.")
     else:
         st.info("Matches are scheduled — teams are locked. Go to **Schedule** to manage matches.")
 

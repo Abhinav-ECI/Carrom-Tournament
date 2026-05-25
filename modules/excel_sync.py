@@ -101,6 +101,15 @@ def _ensure_data_dir(location: str | None = None) -> None:
 
 def _push(sheet_name: str, df: pd.DataFrame, message: str | None = None) -> None:
     """Best-effort GitHub commit — never raises."""
+    # Only push to GitHub when an admin session has explicitly unlocked admin mode.
+    try:
+        import streamlit as st
+        if not st.session_state.get("is_admin", False):
+            return
+    except Exception:
+        # Not running inside Streamlit (e.g., unit tests) — skip pushing.
+        return
+
     try:
         from modules.github_sync import push_file
         push_file(

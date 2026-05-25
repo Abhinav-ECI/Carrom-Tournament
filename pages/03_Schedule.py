@@ -8,6 +8,7 @@ import pandas as pd
 from modules.excel_sync import load_sheet
 from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points
 from modules.ui_helpers import render_logo
+from modules import auth
 
 st.set_page_config(page_title="Schedule · Carrom Tournament", page_icon="📅", layout="wide", initial_sidebar_state="expanded")
 render_logo()
@@ -47,13 +48,16 @@ if not matches_exist:
         f"{n_teams} teams ready. A random draw will create **{n_matches} {match_word}** in Round 1."
         + (" 1 team will receive a **bye** (auto-win)." if n_teams % 2 != 0 else "")
     )
-    if st.button("🎲 Generate Random Bracket", type="primary", width='stretch'):
-        try:
-            generate_schedule()
-            st.success("Bracket generated!")
-            st.rerun()
-        except RuntimeError as e:
-            st.error(str(e))
+    if auth.is_admin():
+        if st.button("🎲 Generate Random Bracket", type="primary", width='stretch'):
+            try:
+                generate_schedule()
+                st.success("Bracket generated!")
+                st.rerun()
+            except RuntimeError as e:
+                st.error(str(e))
+    else:
+        st.info("Unlock admin to generate the bracket.")
     st.stop()
 
 # ---------------------------------------------------------------------------
@@ -214,11 +218,12 @@ with st.expander("⚠️ Reset Entire Schedule"):
         "This will delete all match records, clear all team wins/losses, "
         "and reset elimination statuses. Player and team registrations are kept."
     )
-    if st.button("🔄 Reset Schedule", type="secondary"):
-        try:
-            reset_schedule()
-            st.success("Schedule reset. You can generate a new bracket now.")
-            st.rerun()
-        except RuntimeError as e:
-            st.error(str(e))
+    if auth.is_admin():
+        if st.button("🔄 Reset Schedule", type="secondary"):
+            try:
+                reset_schedule()
+                st.success("Schedule reset. You can generate a new bracket now.")
+                st.rerun()
+            except RuntimeError as e:
+                st.error(str(e))
 

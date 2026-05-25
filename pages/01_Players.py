@@ -7,6 +7,7 @@ import streamlit as st
 from modules.excel_sync import load_sheet
 from modules.player_manager import add_player, delete_player
 from modules.ui_helpers import render_logo, get_cmaps, render_df
+from modules import auth
 
 st.set_page_config(page_title="Players · Carrom Tournament", page_icon="👤", layout="wide", initial_sidebar_state="expanded")
 render_logo()
@@ -46,7 +47,11 @@ else:
                 value=5.0, step=0.5,
                 help="1 = Beginner · 10 = Expert",
             )
-        submitted = st.form_submit_button("➕ Add Player", width='stretch')
+        if auth.is_admin():
+            submitted = st.form_submit_button("➕ Add Player", width='stretch')
+        else:
+            st.info("Admin-only: unlock via the sidebar to add players.")
+            submitted = False
 
     if submitted:
         try:
@@ -98,11 +103,14 @@ else:
             for _, row in players_df.iterrows()
         }
         selected = st.selectbox("Select player to remove", options=list(name_map.keys()))
-        if st.button("🗑️ Remove Player", type="secondary"):
-            try:
-                delete_player(name_map[selected])
-                st.success(f"Removed **{selected}**.")
-                st.rerun()
-            except (ValueError, RuntimeError) as e:
-                st.error(str(e))
+        if auth.is_admin():
+            if st.button("🗑️ Remove Player", type="secondary"):
+                try:
+                    delete_player(name_map[selected])
+                    st.success(f"Removed **{selected}**.")
+                    st.rerun()
+                except (ValueError, RuntimeError) as e:
+                    st.error(str(e))
+        else:
+            st.info("Unlock admin to remove players.")
 
