@@ -14,6 +14,7 @@ Workbook sheets:
 """
 
 import os
+import zipfile
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -83,6 +84,17 @@ def _ensure_data_dir() -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
+def _is_valid_workbook() -> bool:
+    """Return True if EXCEL_PATH exists and is a valid xlsx/zip file."""
+    if not os.path.exists(EXCEL_PATH):
+        return False
+    try:
+        with zipfile.ZipFile(EXCEL_PATH):
+            return True
+    except zipfile.BadZipFile:
+        return False
+
+
 def _apply_header_style(ws, color_hex: str) -> None:
     fill = PatternFill("solid", fgColor=color_hex)
     font = Font(bold=True, color="FFFFFF")
@@ -135,8 +147,10 @@ def _write_sheet(wb, sheet_name: str, df: pd.DataFrame) -> None:
 def init_workbook() -> None:
     """Create the Excel workbook with all sheets and headers if it does not exist."""
     _ensure_data_dir()
-    if os.path.exists(EXCEL_PATH):
+    if _is_valid_workbook():
         return
+    if os.path.exists(EXCEL_PATH):
+        os.remove(EXCEL_PATH)  # remove corrupted file before recreating
 
     wb = Workbook()
     wb.remove(wb.active)  # remove the default blank sheet
@@ -177,7 +191,9 @@ def save_sheet(sheet_name: str, df: pd.DataFrame) -> None:
     Automatically calls update_derived_sheets() after saving source data.
     """
     _ensure_data_dir()
-    if not os.path.exists(EXCEL_PATH):
+    if not _is_valid_workbook():
+        if os.path.exists(EXCEL_PATH):
+            os.remove(EXCEL_PATH)
         init_workbook()
 
     wb = load_workbook(EXCEL_PATH)
@@ -203,7 +219,7 @@ def update_derived_sheets() -> None:
     those sheets in the workbook.  Called automatically by save_sheet().
     """
     _ensure_data_dir()
-    if not os.path.exists(EXCEL_PATH):
+    if not _is_valid_workbook():
         return
 
     teams_df    = load_sheet("Teams")

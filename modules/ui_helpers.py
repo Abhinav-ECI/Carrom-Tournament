@@ -389,4 +389,4 @@ def _render_download_button() -> None:
 
 
 def render_df(styler_or_df, hide_index: bool = True) -> None:
-    st.dataframe(styler_or_df, use_container_width=True, hide_index=hide_index)
+    st.dataframe(styler_or_df, width='stretch', hide_index=hide_index)

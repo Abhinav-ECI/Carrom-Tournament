@@ -46,7 +46,7 @@ else:
                 value=5.0, step=0.5,
                 help="1 = Beginner · 10 = Expert",
             )
-        submitted = st.form_submit_button("➕ Add Player", use_container_width=True)
+        submitted = st.form_submit_button("➕ Add Player", width='stretch')
 
     if submitted:
         try:

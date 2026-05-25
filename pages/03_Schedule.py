@@ -47,7 +47,7 @@ if not matches_exist:
         f"{n_teams} teams ready. A random draw will create **{n_matches} {match_word}** in Round 1."
         + (" 1 team will receive a **bye** (auto-win)." if n_teams % 2 != 0 else "")
     )
-    if st.button("🎲 Generate Random Bracket", type="primary", use_container_width=True):
+    if st.button("🎲 Generate Random Bracket", type="primary", width='stretch'):
         try:
             generate_schedule()
             st.success("Bracket generated!")

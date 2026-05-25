@@ -71,7 +71,7 @@ if not teams_exist:
         skill_spread = round(preview_df["Avg Skill"].max() - preview_df["Avg Skill"].min(), 2)
         st.caption(f"Average skill spread across all teams: **{skill_spread}** points")
 
-        if st.button("✅ Confirm & Build Teams", type="primary", use_container_width=True):
+        if st.button("✅ Confirm & Build Teams", type="primary", width='stretch'):
             try:
                 build_balanced_teams()
                 st.success(f"Built **{n // 2} balanced teams** successfully!")

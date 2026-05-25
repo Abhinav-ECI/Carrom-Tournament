@@ -161,7 +161,7 @@ def _edit_match_dialog(edit_mid: int) -> None:
 
     st.markdown("---")
     csave, _ = st.columns([1, 3])
-    if csave.button("💾 Save Changes", type="primary", use_container_width=True):
+    if csave.button("💾 Save Changes", type="primary", width='stretch'):
         try:
             edit_match_result(edit_mid, new_sa, new_sb, edit_award_map)
             st.success("Match updated successfully!")
@@ -359,7 +359,7 @@ with record_col:
         st.markdown("---")
         col_submit, col_spacer = st.columns([1, 3])
         with col_submit:
-            if st.button("✅ Save Result & Awards", type="primary", use_container_width=True):
+            if st.button("✅ Save Result & Awards", type="primary", width='stretch'):
                 try:
                     record_result(selected_match_id, winner_id, team_a_score=score_a, team_b_score=score_b)
                     if award_map:
