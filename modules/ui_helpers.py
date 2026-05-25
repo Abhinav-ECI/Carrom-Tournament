@@ -372,12 +372,13 @@ def render_logo() -> None:
 
 def _render_download_button() -> None:
     """Render a sidebar button pinned to the bottom to download the active location's Excel file."""
-    import os
-    from modules.excel_sync import EXCEL_PATH, _active_location
-    if os.path.exists(EXCEL_PATH):
-        with open(EXCEL_PATH, "rb") as f:
-            data = f.read()
-        filename = f"tournament_{_active_location.lower()}.xlsx"
+    # Build the workbook in-memory from current CSVs and offer it for download.
+    from modules.excel_export import generate_workbook_bytes
+    loc = st.session_state.get("_location", LOCATIONS[0])
+    data_dir = Path(__file__).parent.parent / "data" / loc.lower()
+    if data_dir.exists() and any(f.suffix.lower() == ".csv" for f in data_dir.iterdir()):
+        data = generate_workbook_bytes(loc)
+        filename = f"tournament_{loc.lower()}.xlsx"
         st.sidebar.download_button(
             label="📥",
             data=data,
