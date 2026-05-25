@@ -117,8 +117,12 @@ def _push(sheet_name: str, df: pd.DataFrame, message: str | None = None) -> None
             df.to_csv(index=False),
             message or f"Update {sheet_name} data",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        try:
+            import streamlit as st
+            st.warning(f"⚠️ GitHub sync error: {e}")
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

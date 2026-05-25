@@ -53,8 +53,11 @@ def push_file(repo_path: str, content: str, message: str = "Update tournament da
             repo.update_file(repo_path, message, content, existing.sha, branch=branch)
         except UnknownObjectException:
             repo.create_file(repo_path, message, content, branch=branch)
-    except GithubException:
-        pass  # don't crash the app if GitHub is temporarily unreachable
+    except GithubException as e:
+        try:
+            st.warning(f"⚠️ GitHub push failed: {e}")
+        except Exception:
+            pass
 
 
 def pull_file(repo_path: str) -> str | None:
@@ -71,5 +74,11 @@ def pull_file(repo_path: str) -> str | None:
         repo = _get_repo()
         contents = repo.get_contents(repo_path, ref=branch)
         return contents.decoded_content.decode("utf-8")
-    except (GithubException, UnknownObjectException):
+    except UnknownObjectException:
+        return None  # file doesn't exist yet — expected on first run
+    except GithubException as e:
+        try:
+            st.warning(f"⚠️ GitHub pull failed: {e}")
+        except Exception:
+            pass
         return None
