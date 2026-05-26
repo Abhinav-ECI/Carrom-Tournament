@@ -105,16 +105,18 @@ def _ensure_data_dir(location: str | None = None) -> None:
 # Deferred GitHub push — dirty tracking + background thread
 # ---------------------------------------------------------------------------
 
-_dirty_sheets: set[str] = set()
+_dirty_sheets: set[tuple[str, str]] = set()  # (sheet_name, location)
 _dirty_lock   = threading.Lock()
 _bg_thread: threading.Thread | None = None
 _PUSH_INTERVAL = 300  # seconds between automatic background pushes
 
 
 def _mark_dirty(sheet_name: str) -> None:
-    """Flag a sheet as needing a GitHub push."""
+    """Flag a sheet+location pair as needing a GitHub push.
+    Location is captured now, not at push time, so the correct file is always synced.
+    """
     with _dirty_lock:
-        _dirty_sheets.add(sheet_name)
+        _dirty_sheets.add((sheet_name, _active_location))
 
 
 def _bg_push_loop() -> None:
@@ -136,30 +138,28 @@ def sync_to_github() -> dict:
     """Push all dirty sheets to GitHub immediately.
 
     Safe to call from any thread — does not use st.session_state or st.warning.
-    Returns {"pushed": [...sheet names...], "failed": [...sheet names...]}.
+    Returns {"pushed": [..."location/sheet"...], "failed": [...]}.
     """
     with _dirty_lock:
-        sheets = list(_dirty_sheets)
+        items = list(_dirty_sheets)
         _dirty_sheets.clear()
 
     pushed: list[str] = []
     failed: list[str] = []
-    for sheet_name in sheets:
-        path = _csv_path(sheet_name)
+    for sheet_name, location in items:
+        path = _csv_path(sheet_name, location)       # use stored location
+        repo  = _repo_path(sheet_name, location)     # use stored location
         if not os.path.exists(path):
             continue
         try:
             df = pd.read_csv(path)
             from modules.github_sync import push_file
-            push_file(
-                _repo_path(sheet_name),
-                df.to_csv(index=False),
-                f"Sync {sheet_name} data",
-            )
-            pushed.append(sheet_name)
+            push_file(repo, df.to_csv(index=False), f"Sync {location}/{sheet_name}")
+            pushed.append(f"{location}/{sheet_name}")
         except Exception:
-            failed.append(sheet_name)
-            _mark_dirty(sheet_name)  # re-queue for next attempt
+            failed.append(f"{location}/{sheet_name}")
+            with _dirty_lock:                       # re-queue with correct location
+                _dirty_sheets.add((sheet_name, location))
 
     return {"pushed": pushed, "failed": failed}
 
