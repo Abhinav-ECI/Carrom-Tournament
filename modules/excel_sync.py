@@ -233,21 +233,25 @@ except Exception:
     pass  # not running inside Streamlit — use uncached version
 
 
-def load_sheet(sheet_name: str) -> pd.DataFrame:
+def load_sheet(sheet_name: str, location: str | None = None) -> pd.DataFrame:
     """Load a sheet from its CSV file.
 
     If the local file is absent (e.g. after a Streamlit Cloud container restart),
     the latest version is pulled from GitHub before falling back to an empty frame.
+
+    Pass *location* to read a specific location's data without touching the
+    module-level active location.  Omit it (or pass None) to use the current
+    active location (the normal case for all page modules).
     """
-    _ensure_data_dir()
+    _ensure_data_dir(location)
     expected_cols = SHEET_HEADERS.get(sheet_name, [])
-    path = _csv_path(sheet_name)
+    path = _csv_path(sheet_name, location)
 
     if not os.path.exists(path):
         # Recovery path: pull from GitHub and write to disk, then fall through
         try:
             from modules.github_sync import pull_file
-            content = pull_file(_repo_path(sheet_name))
+            content = pull_file(_repo_path(sheet_name, location))
             if content:
                 df = pd.read_csv(io.StringIO(content))
                 df.to_csv(path, index=False)

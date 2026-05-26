@@ -21,7 +21,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from modules.excel_sync import HEADER_COLORS, SHEET_HEADERS, load_sheet, set_location, _active_location
+from modules.excel_sync import HEADER_COLORS, SHEET_HEADERS, load_sheet
 
 
 # ---------------------------------------------------------------------------
@@ -80,23 +80,17 @@ def generate_workbook_bytes(location: str | None = None) -> bytes:
 
     Loads all sheets from CSV, builds a styled openpyxl workbook in memory,
     and returns the raw bytes without writing anything to disk.
+
+    Does NOT modify the global active location — location is passed explicitly
+    to load_sheet() so the caller's active location is left untouched.
     """
-    # Temporarily switch location if explicitly requested
-    original = _active_location
-    if location and location != original:
-        set_location(location)
+    wb = Workbook()
+    wb.remove(wb.active)  # drop the default blank sheet
 
-    try:
-        wb = Workbook()
-        wb.remove(wb.active)  # drop the default blank sheet
+    for sheet_name in SHEET_HEADERS:
+        df = load_sheet(sheet_name, location=location)
+        _write_sheet(wb, sheet_name, df)
 
-        for sheet_name in SHEET_HEADERS:
-            df = load_sheet(sheet_name)
-            _write_sheet(wb, sheet_name, df)
-
-        buf = io.BytesIO()
-        wb.save(buf)
-        return buf.getvalue()
-    finally:
-        if location and location != original:
-            set_location(original)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
