@@ -9,7 +9,6 @@ from modules.excel_sync import load_sheet, AWARDS
 from modules.leaderboard import get_team_standings, get_player_stats, get_award_leaders
 from modules.ui_helpers import render_logo, grad_style, render_df
 
-st.set_page_config(page_title="Leaderboard · Carrom Tournament", page_icon="🏆", layout="wide", initial_sidebar_state="expanded")
 render_logo()
 
 st.title("🏆 Leaderboard & Stats")

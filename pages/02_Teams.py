@@ -10,7 +10,6 @@ from modules.team_builder import build_balanced_teams, get_default_pairing, rena
 from modules.ui_helpers import render_logo, grad_style, render_df
 from modules import auth
 
-st.set_page_config(page_title="Teams · Carrom Tournament", page_icon="🤝", layout="wide", initial_sidebar_state="expanded")
 render_logo()
 
 st.title("🤝 Teams")

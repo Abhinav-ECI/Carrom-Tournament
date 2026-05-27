@@ -11,13 +11,6 @@ from modules.excel_sync import LOCATIONS, load_sheet
 from modules.excel_export import generate_workbook_bytes
 import datetime
 
-st.set_page_config(
-    page_title="Export · Carrom Tournament",
-    page_icon="📥",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
 render_logo()
 
 st.title("📥 Export Tournament Data")

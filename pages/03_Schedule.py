@@ -10,7 +10,6 @@ from modules.match_scheduler import generate_schedule, reset_schedule, schedule_
 from modules.ui_helpers import render_logo
 from modules import auth
 
-st.set_page_config(page_title="Schedule · Carrom Tournament", page_icon="📅", layout="wide", initial_sidebar_state="expanded")
 render_logo()
 
 st.title("📅 Match Schedule")

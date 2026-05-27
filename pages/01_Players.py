@@ -9,7 +9,6 @@ from modules.player_manager import add_player, delete_player
 from modules.ui_helpers import render_logo, grad_style, render_df
 from modules import auth
 
-st.set_page_config(page_title="Players · Carrom Tournament", page_icon="👤", layout="wide", initial_sidebar_state="expanded")
 render_logo()
 
 st.title("👤 Player Registration")

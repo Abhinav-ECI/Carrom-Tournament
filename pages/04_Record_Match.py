@@ -10,7 +10,6 @@ from modules.match_recorder import record_result, save_match_awards, get_match_a
 from modules.ui_helpers import render_logo
 from modules import auth
 
-st.set_page_config(page_title="Record Match · Carrom Tournament", page_icon="🎮", layout="wide", initial_sidebar_state="expanded")
 render_logo()
 
 st.title("🎮 Record Match")
