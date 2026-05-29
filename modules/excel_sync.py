@@ -321,7 +321,12 @@ def update_derived_sheets() -> None:
     matches_df = load_sheet("Matches")
 
     # ---- Leaderboard -------------------------------------------------------
-    if not teams_df.empty:
+    if teams_df.empty:
+        pd.DataFrame(columns=SHEET_HEADERS["Leaderboard"]).to_csv(
+            _csv_path("Leaderboard"), index=False
+        )
+        _mark_dirty("Leaderboard")
+    else:
         lb = teams_df[["team_id", "team_name", "wins", "losses", "is_eliminated"]].copy()
         lb["wins"]   = pd.to_numeric(lb["wins"],   errors="coerce").fillna(0).astype(int)
         lb["losses"] = pd.to_numeric(lb["losses"], errors="coerce").fillna(0).astype(int)
@@ -378,7 +383,12 @@ def update_derived_sheets() -> None:
         _mark_dirty("Leaderboard")
 
     # ---- PlayerStats -------------------------------------------------------
-    if not players_df.empty:
+    if players_df.empty:
+        pd.DataFrame(columns=SHEET_HEADERS["PlayerStats"]).to_csv(
+            _csv_path("PlayerStats"), index=False
+        )
+        _mark_dirty("PlayerStats")
+    else:
         ps = players_df[["player_id", "name", "team_id"]].copy()
 
         if not teams_df.empty:
