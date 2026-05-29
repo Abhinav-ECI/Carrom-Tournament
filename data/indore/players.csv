@@ -1,2 +1,3 @@
-player_id,name,skill_rating,team_id
-1,Sandeep Bhargava,2.0,
+player_id,name,skill_rating,team_id,partner_pref
+1,Sandeep Bhargava,2.0,,
+2,Samir N Sahare,4.0,,
