@@ -34,23 +34,30 @@ import pandas as pd
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 LOCATIONS = ["Bangalore", "Hyderabad", "Indore"]
-_active_location: str = LOCATIONS[0]
+
+# Per-thread location: each Streamlit session runs in its own thread so
+# using threading.local() means concurrent sessions never clobber each other.
+_tls = threading.local()
+
+
+def _get_location() -> str:
+    """Return the active location for the current thread, defaulting to LOCATIONS[0]."""
+    return getattr(_tls, "active_location", LOCATIONS[0])
 
 
 def set_location(loc: str) -> None:
-    """Switch active location — all subsequent data calls use this location's CSV files."""
-    global _active_location
-    _active_location = loc
+    """Switch active location for this thread only — other sessions are unaffected."""
+    _tls.active_location = loc
 
 
 def _csv_path(sheet_name: str, location: str | None = None) -> str:
-    loc = (location or _active_location).lower()
+    loc = (location or _get_location()).lower()
     return os.path.join(DATA_DIR, loc, f"{sheet_name.lower()}.csv")
 
 
 def _repo_path(sheet_name: str, location: str | None = None) -> str:
     """GitHub repo-relative path for a sheet's CSV file."""
-    loc = (location or _active_location).lower()
+    loc = (location or _get_location()).lower()
     return f"data/{loc}/{sheet_name.lower()}.csv"
 
 # ---------------------------------------------------------------------------
@@ -97,7 +104,7 @@ HEADER_COLORS = {
 # ---------------------------------------------------------------------------
 
 def _ensure_data_dir(location: str | None = None) -> None:
-    loc = (location or _active_location).lower()
+    loc = (location or _get_location()).lower()
     os.makedirs(os.path.join(DATA_DIR, loc), exist_ok=True)
 
 
@@ -113,10 +120,10 @@ _PUSH_INTERVAL = 300  # seconds between automatic background pushes
 
 def _mark_dirty(sheet_name: str) -> None:
     """Flag a sheet+location pair as needing a GitHub push.
-    Location is captured now, not at push time, so the correct file is always synced.
+    Location is captured from the current thread now, not at push time.
     """
     with _dirty_lock:
-        _dirty_sheets.add((sheet_name, _active_location))
+        _dirty_sheets.add((sheet_name, _get_location()))
 
 
 def _bg_push_loop() -> None:
