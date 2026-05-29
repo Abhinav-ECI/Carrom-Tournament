@@ -15,21 +15,67 @@ from modules.player_manager import update_player_team
 
 
 def get_default_pairing(players_df: pd.DataFrame) -> list:
-    """Return the default balanced pairing as a list of (player_id_1, player_id_2) tuples.
+    """Return the best pairing as a list of (player_id_1, player_id_2) tuples.
 
-    Uses the sorted-interleaving algorithm: sort by skill descending,
-    then pair rank-1 with rank-N, rank-2 with rank-(N-1), etc.
+    Algorithm:
+      1. Find all "satisfiable" preference pairs: A prefers B AND
+         (B has no preference OR B also prefers A).
+      2. Resolve conflicts greedily — mutual preferences win over one-way;
+         ties broken by the pair whose avg skill is closest to the
+         overall field average (keeps the bracket balanced).
+      3. Remaining unpaired players fall back to sorted interleaving
+         (rank-1 paired with rank-N, etc.).
     """
-    sorted_p = (
-        players_df
-        .sort_values("skill_rating", ascending=False)
-        .reset_index(drop=True)
+    skills   = {int(r["player_id"]): float(r["skill_rating"]) for _, r in players_df.iterrows()}
+    name_map = {str(r["name"]).strip().lower(): int(r["player_id"]) for _, r in players_df.iterrows()}
+    pref_map: dict[int, int | None] = {}
+    for _, r in players_df.iterrows():
+        pid  = int(r["player_id"])
+        pref = str(r.get("partner_pref") or "").strip().lower()
+        pref_map[pid] = name_map.get(pref)   # None when no / invalid preference
+
+    overall_avg = sum(skills.values()) / len(skills)
+    all_pids    = list(skills.keys())
+
+    # Collect every satisfiable pair with a sort key:
+    #   (0 = mutual preferred over 1 = one-way, then deviation from overall avg)
+    candidates: list[tuple] = []
+    for i, pid_a in enumerate(all_pids):
+        for pid_b in all_pids[i + 1:]:
+            a_wants_b = pref_map.get(pid_a) == pid_b
+            b_wants_a = pref_map.get(pid_b) == pid_a
+            b_no_pref = pref_map.get(pid_b) is None
+            a_no_pref = pref_map.get(pid_a) is None
+
+            satisfiable = (
+                (a_wants_b and (b_wants_a or b_no_pref)) or
+                (b_wants_a and (a_wants_b or a_no_pref))
+            )
+            if satisfiable:
+                mutual    = a_wants_b and b_wants_a
+                skill_dev = abs((skills[pid_a] + skills[pid_b]) / 2 - overall_avg)
+                candidates.append((0 if mutual else 1, skill_dev, pid_a, pid_b))
+
+    candidates.sort()   # best (mutual + closest to avg) first
+
+    paired: set[int] = set()
+    locked: list[tuple[int, int]] = []
+    for _, _, pid_a, pid_b in candidates:
+        if pid_a not in paired and pid_b not in paired:
+            locked.append((pid_a, pid_b))
+            paired.update({pid_a, pid_b})
+
+    # Balanced interleaving for the remaining players
+    remaining = sorted(
+        [pid for pid in all_pids if pid not in paired],
+        key=lambda pid: skills[pid],
+        reverse=True,
     )
-    n = len(sorted_p)
-    return [
-        (int(sorted_p.iloc[i]["player_id"]), int(sorted_p.iloc[n - 1 - i]["player_id"]))
-        for i in range(n // 2)
-    ]
+    n = len(remaining)
+    for i in range(n // 2):
+        locked.append((remaining[i], remaining[n - 1 - i]))
+
+    return locked
 
 
 def build_balanced_teams(custom_pairing: list | None = None) -> pd.DataFrame:
