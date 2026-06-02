@@ -1,9 +1,9 @@
 player_id,name,team_name,queen_snatcher,precision_player,best_striker,comeback_king,total_awards
-1,Kiran K Gajendragadkar,Team A,2,2,1,1,6
-2,Naveen Kalaivanan,Team C,1,0,1,0,2
-3,Manoj Srinivas,Team D,0,0,2,0,2
-5,Harish Patnaik,Team D,0,0,0,2,2
-6,RaviTeja Mellamputi,Team B,1,0,1,0,2
-7,Jilan B Pulimaddela,Team C,0,1,0,1,2
-8,Abhinav Saxena,Team B,0,1,0,1,2
-9,Sudeep Banerjee,Team A,1,1,0,0,2
+1,Kiran K Gajendragadkar,Team A,1,0,0,1,2
+2,Naveen Kalaivanan,Team C,0,0,0,0,0
+3,Manoj Srinivas,Team D,0,0,0,0,0
+5,Harish Patnaik,Team D,0,0,0,0,0
+6,RaviTeja Mellamputi,Team B,0,0,0,0,0
+7,Jilan B Pulimaddela,Team C,0,0,0,0,0
+8,Abhinav Saxena,Team B,0,0,0,0,0
+9,Sudeep Banerjee,Team A,0,1,1,0,2
