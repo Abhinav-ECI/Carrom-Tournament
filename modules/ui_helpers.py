@@ -5,11 +5,41 @@ Shared UI utilities: global CSS, logo display, colormaps.
 
 import streamlit as st
 from pathlib import Path
+from datetime import date, timedelta
 from .excel_sync import LOCATIONS, set_location
 from . import auth
 
 _LOGO_DIR     = Path(__file__).parent.parent / "assets" / "logo"
 _ALLOWED_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
+# ---------------------------------------------------------------------------
+# Date badge helper (shared by Schedule page and Home dashboard)
+# ---------------------------------------------------------------------------
+def date_badge(date_str) -> str:
+    """Return an HTML badge for a scheduled date, or plain '—'."""
+    if not date_str or str(date_str) in ("", "nan", "None"):
+        return "—"
+    try:
+        d = date.fromisoformat(str(date_str))
+    except ValueError:
+        return str(date_str)
+    today    = date.today()
+    tomorrow = today + timedelta(days=1)
+    if d == tomorrow:
+        return (
+            "<span style='background:#16a34a;color:#fff;padding:2px 10px;"
+            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
+            "🟢 Tomorrow</span>"
+        )
+    if d == today:
+        return (
+            "<span style='background:#d97706;color:#fff;padding:2px 10px;"
+            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
+            "⚡ Today</span>"
+        )
+    if d < today:
+        return f"<span style='color:#6b7280;font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
+    return f"<span style='font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
 
 # ---------------------------------------------------------------------------
 # Colormaps — pure Python, no matplotlib required

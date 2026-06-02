@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pandas as pd
 import streamlit as st
 from modules.excel_sync import init_workbook, load_sheet
-from modules.ui_helpers import render_logo, render_df
+from modules.ui_helpers import render_logo, render_df, date_badge
 from modules import auth
 
 # ---------------------------------------------------------------------------
@@ -114,10 +114,15 @@ def _home():
                 bracket_label = {"winners": "Winners Bracket", "losers": "Losers Bracket", "finals": "🏆 Finals"}.get(
                     str(um["bracket"]).lower(), str(um["bracket"]).capitalize()
                 )
-                st.info(
-                    f"**Match {int(um['match_id'])}** &nbsp;·&nbsp; Round {int(um['round'])} &nbsp;·&nbsp; {bracket_label}  \n"
-                    f"🎯 &nbsp; **{_tn(um['team_a_id'])}** &nbsp; vs &nbsp; **{_tn(um['team_b_id'])}**"
-                )
+                sched = um.get("scheduled_date", None)
+                badge = date_badge(sched)
+                with st.container(border=True):
+                    st.markdown(
+                        f"**Match {int(um['match_id'])}** &nbsp;·&nbsp; Round {int(um['round'])} &nbsp;·&nbsp; {bracket_label}  \n"
+                        f"🎯 &nbsp; **{_tn(um['team_a_id'])}** &nbsp; vs &nbsp; **{_tn(um['team_b_id'])}**"
+                    )
+                    if badge != "—":
+                        st.markdown(badge, unsafe_allow_html=True)
 
     st.markdown("---")
 

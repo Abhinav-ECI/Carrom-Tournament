@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import date, timedelta
 from modules.excel_sync import load_sheet
 from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points, set_match_scheduled_date
-from modules.ui_helpers import render_logo
+from modules.ui_helpers import render_logo, date_badge
 from modules import auth
 
 render_logo()
@@ -83,31 +83,7 @@ def _team_label(tid):
     return team_name.get(int(tid), f"Team {int(tid)}")
 
 
-def _date_badge(date_str) -> str:
-    """Return an HTML badge for a scheduled date, or plain '—'."""
-    if not date_str or str(date_str) in ("", "nan", "None"):
-        return "—"
-    try:
-        d = date.fromisoformat(str(date_str))
-    except ValueError:
-        return str(date_str)
-    today    = date.today()
-    tomorrow = today + timedelta(days=1)
-    if d == tomorrow:
-        return (
-            "<span style='background:#16a34a;color:#fff;padding:2px 10px;"
-            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
-            "🟢 Tomorrow</span>"
-        )
-    if d == today:
-        return (
-            "<span style='background:#d97706;color:#fff;padding:2px 10px;"
-            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
-            "⚡ Today</span>"
-        )
-    if d < today:
-        return f"<span style='color:#6b7280;font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
-    return f"<span style='font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
+# date_badge imported from ui_helpers
 
 # Overall tournament stats strip
 total    = len(matches_df[matches_df["bracket"] != "bye"])
@@ -207,7 +183,7 @@ for _, row in display_df.iterrows():
                 set_match_scheduled_date(match_id, new_date)
                 st.rerun()
         else:
-            col_date.markdown(_date_badge(sched_date), unsafe_allow_html=True)
+            col_date.markdown(date_badge(sched_date), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Champion banner
