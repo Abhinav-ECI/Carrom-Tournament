@@ -14,6 +14,7 @@ advance_bracket() is called automatically by match_recorder after every result.
 
 import random
 import pandas as pd
+from datetime import date
 from modules.excel_sync import load_sheet, save_sheet, get_next_id
 
 
@@ -69,6 +70,7 @@ def generate_schedule() -> pd.DataFrame:
             "loser_id":   None,
             "bracket":    "winners",
             "status":     "bye",
+            "scheduled_date": None,
             "date_played": None,
         })
         # Grant the bye win
@@ -242,6 +244,24 @@ def get_schedule() -> pd.DataFrame:
     return load_sheet("Matches")
 
 
+def set_match_scheduled_date(match_id: int, scheduled_date) -> None:
+    """Set or clear the planned date for a scheduled match.
+
+    *scheduled_date* may be a datetime.date, an ISO string (YYYY-MM-DD),
+    or None to clear the date.
+    """
+    df = load_sheet("Matches")
+    if df.empty or match_id not in df["match_id"].astype(int).values:
+        raise ValueError(f"Match ID {match_id} not found.")
+    if scheduled_date is not None:
+        val = str(scheduled_date)  # date.isoformat() or already a string
+    else:
+        val = None
+    df["scheduled_date"] = df["scheduled_date"].astype(object)
+    df.loc[df["match_id"].astype(int) == match_id, "scheduled_date"] = val
+    save_sheet("Matches", df)
+
+
 def reset_schedule() -> None:
     """
     Wipe all match data and reset team win/loss counters.
@@ -256,7 +276,7 @@ def reset_schedule() -> None:
 
     save_sheet("Matches", pd.DataFrame(columns=[
         "match_id", "round", "team_a_id", "team_b_id",
-        "winner_id", "loser_id", "bracket", "status", "date_played",
+        "winner_id", "loser_id", "bracket", "status", "scheduled_date", "date_played",
         "team_a_score", "team_b_score",
     ]))
 
@@ -282,6 +302,7 @@ def _make_match(match_id: int, round_num: int, team_a_id: int,
         "loser_id":     None,
         "bracket":      bracket,
         "status":       "scheduled",
+        "scheduled_date": None,
         "date_played":  None,
         "team_a_score": None,
         "team_b_score": None,

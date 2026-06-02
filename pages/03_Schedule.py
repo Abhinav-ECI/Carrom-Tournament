@@ -5,8 +5,9 @@ View the full match bracket and schedule.
 
 import streamlit as st
 import pandas as pd
+from datetime import date, timedelta
 from modules.excel_sync import load_sheet
-from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points
+from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points, set_match_scheduled_date
 from modules.ui_helpers import render_logo
 from modules import auth
 
@@ -81,6 +82,33 @@ def _team_label(tid):
         return "—"
     return team_name.get(int(tid), f"Team {int(tid)}")
 
+
+def _date_badge(date_str) -> str:
+    """Return an HTML badge for a scheduled date, or plain '—'."""
+    if not date_str or str(date_str) in ("", "nan", "None"):
+        return "—"
+    try:
+        d = date.fromisoformat(str(date_str))
+    except ValueError:
+        return str(date_str)
+    today    = date.today()
+    tomorrow = today + timedelta(days=1)
+    if d == tomorrow:
+        return (
+            "<span style='background:#16a34a;color:#fff;padding:2px 10px;"
+            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
+            "🟢 Tomorrow</span>"
+        )
+    if d == today:
+        return (
+            "<span style='background:#d97706;color:#fff;padding:2px 10px;"
+            "border-radius:999px;font-weight:700;font-size:0.85rem;'>"
+            "⚡ Today</span>"
+        )
+    if d < today:
+        return f"<span style='color:#6b7280;font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
+    return f"<span style='font-size:0.85rem;'>{d.strftime('%d %b %Y')}</span>"
+
 # Overall tournament stats strip
 total    = len(matches_df[matches_df["bracket"] != "bye"])
 done_cnt = int((matches_df["status"] == "done").sum())
@@ -133,9 +161,11 @@ for _, row in display_df.iterrows():
     team_a    = _team_label(row["team_a_id"])
     team_b    = _team_label(row["team_b_id"])
     winner    = _team_label(row.get("winner_id"))
+    sched_date = row.get("scheduled_date", None)
 
-    # Build a card row
-    col_match, col_status, col_winner = st.columns([5, 2, 2])
+    # Build a card row — 4 columns: matchup | status | winner/date | (admin) date picker
+    is_admin    = auth.is_admin()
+    col_match, col_status, col_winner, col_date = st.columns([5, 2, 2, 3])
 
     if status == "bye":
         col_match.markdown(f"**{team_a}** — *bye (auto-win)*")
@@ -150,10 +180,34 @@ for _, row in display_df.iterrows():
         col_match.markdown(f"**{team_a}**  vs  **{team_b}**{score_str}", unsafe_allow_html=True)
         col_status.markdown(STATUS_BADGE["done"])
         col_winner.markdown(f"🏆 **{winner}**")
+        # Show played date if available
+        played = row.get("date_played", None)
+        if played and str(played) not in ("", "nan", "None"):
+            col_date.caption(f"Played {played}")
     else:
+        # Scheduled / in-progress
         col_match.markdown(f"**{team_a}**  vs  **{team_b}**")
         col_status.markdown(STATUS_BADGE.get(status, status))
         col_winner.markdown("—")
+        # Date badge for viewers; date picker for admin
+        if is_admin:
+            cur_val = None
+            if sched_date and str(sched_date) not in ("", "nan", "None"):
+                try:
+                    cur_val = date.fromisoformat(str(sched_date))
+                except ValueError:
+                    cur_val = None
+            new_date = col_date.date_input(
+                "📅 Set date",
+                value=cur_val,
+                key=f"sched_date_{match_id}",
+                label_visibility="collapsed",
+            )
+            if new_date != cur_val:
+                set_match_scheduled_date(match_id, new_date)
+                st.rerun()
+        else:
+            col_date.markdown(_date_badge(sched_date), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Champion banner
