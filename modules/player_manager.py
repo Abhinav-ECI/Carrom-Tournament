@@ -69,3 +69,37 @@ def update_player_team(player_id: int, team_id: int) -> None:
         raise ValueError(f"Player ID {player_id} not found.")
     df.loc[df["player_id"] == player_id, "team_id"] = team_id
     save_sheet("Players", df)
+
+
+def update_player(player_id: int, name: str | None = None, skill_rating: float | None = None, partner_pref: str | None = None) -> None:
+    """
+    Update player's attributes. Any argument set to None is left unchanged.
+
+    Raises ValueError on invalid input or if player not found.
+    """
+    df = load_sheet("Players")
+    if df.empty or player_id not in df["player_id"].values:
+        raise ValueError(f"Player ID {player_id} not found.")
+
+    # Validate and apply name change
+    if name is not None:
+        new_name = name.strip()
+        if not new_name:
+            raise ValueError("Player name cannot be empty.")
+        # Prevent duplicate names (case-insensitive) for other players
+        others = df[df["player_id"] != player_id]
+        if not others.empty and new_name.lower() in others["name"].str.lower().values:
+            raise ValueError(f'A player named "{new_name}" already exists.')
+        df.loc[df["player_id"] == player_id, "name"] = new_name
+
+    # Validate and apply skill rating
+    if skill_rating is not None:
+        if not (1.0 <= float(skill_rating) <= 10.0):
+            raise ValueError("Skill rating must be between 1 and 10.")
+        df.loc[df["player_id"] == player_id, "skill_rating"] = round(float(skill_rating), 1)
+
+    # Apply partner preference (allow empty string to clear)
+    if partner_pref is not None:
+        df.loc[df["player_id"] == player_id, "partner_pref"] = partner_pref.strip()
+
+    save_sheet("Players", df)

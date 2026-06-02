@@ -4,8 +4,9 @@ Register players and assign skill ratings.
 """
 
 import streamlit as st
+import pandas as pd
 from modules.excel_sync import load_sheet
-from modules.player_manager import add_player, delete_player
+from modules.player_manager import add_player, delete_player, update_player
 from modules.ui_helpers import render_logo, grad_style, render_df
 from modules import auth
 
@@ -104,24 +105,76 @@ else:
         st.success(f"{n} players registered — ready to build **{n // 2} teams** on the Teams page.")
 
     # ---------------------------------------------------------------------------
-    # Delete a player (only before teams are formed)
+    # Manage players (per-player edit/delete controls)
     # ---------------------------------------------------------------------------
     if not teams_locked:
         st.markdown("---")
-        st.subheader("Remove a Player")
-        name_map = {
-            f"{row['name']} (ID {int(row['player_id'])})": int(row["player_id"])
-            for _, row in players_df.iterrows()
-        }
-        selected = st.selectbox("Select player to remove", options=list(name_map.keys()))
-        if auth.is_admin():
-            if st.button("🗑️ Remove Player", type="secondary"):
-                try:
-                    delete_player(name_map[selected])
-                    st.success(f"Removed **{selected}**.")
-                    st.rerun()
-                except (ValueError, RuntimeError) as e:
-                    st.error(str(e))
-        else:
-            st.info("Unlock admin to remove players.")
+        st.subheader("Manage Players")
+
+        if not auth.is_admin():
+            st.info("Unlock admin to edit or remove players.")
+
+        for _, row in players_df.iterrows():
+            pid = int(row["player_id"])
+            pname = str(row["name"]).strip()
+            pskill = row.get("skill_rating", "—")
+            ppref = row.get("partner_pref", "") or "—"
+
+            col_main, col_del, col_edit = st.columns([6, 1, 1])
+            with col_main:
+                st.markdown(f"**{pname}**  ·  Skill: **{pskill}**  ·  Pref: {ppref}")
+
+            if auth.is_admin():
+                # Delete (cross) button
+                if col_del.button("✖", key=f"del_{pid}", help=f"Remove {pname}"):
+                    st.session_state[f"confirm_delete_{pid}"] = True
+
+                # Edit (pencil) button
+                if col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}"):
+                    st.session_state[f"edit_player_{pid}"] = True
+
+            # Confirmation UI
+            if st.session_state.get(f"confirm_delete_{pid}", False):
+                st.warning(f"Confirm deletion of **{pname}** (ID {pid}). This will remove the player permanently.")
+                c1, c2 = st.columns([1, 1])
+                if c1.button("Confirm Delete", key=f"confirm_del_{pid}"):
+                    try:
+                        delete_player(pid)
+                        st.success(f"Removed **{pname}**.")
+                        st.session_state[f"confirm_delete_{pid}"] = False
+                        st.experimental_rerun()
+                    except (ValueError, RuntimeError) as e:
+                        st.error(str(e))
+                if c2.button("Cancel", key=f"cancel_del_{pid}"):
+                    st.session_state[f"confirm_delete_{pid}"] = False
+
+            # Edit form
+            if st.session_state.get(f"edit_player_{pid}", False):
+                with st.form(f"edit_form_{pid}", clear_on_submit=False):
+                    new_name = st.text_input("Name", value=pname, key=f"edit_name_{pid}")
+                    try:
+                        cur_skill = float(pskill)
+                    except Exception:
+                        cur_skill = 5.0
+                    new_skill = st.slider(
+                        "Skill Rating",
+                        min_value=1.0, max_value=10.0, value=cur_skill, step=0.5, key=f"edit_skill_{pid}"
+                    )
+                    pref_options = ["— No preference —"] + [n for n in players_df["name"].tolist() if n != pname]
+                    cur_pref_index = 0
+                    cur_pref = row.get("partner_pref", "") or ""
+                    if cur_pref and cur_pref in pref_options:
+                        cur_pref_index = pref_options.index(cur_pref)
+                    new_pref_sel = st.selectbox("Partner Preference (optional)", options=pref_options, index=cur_pref_index, key=f"edit_pref_{pid}")
+                    submitted = st.form_submit_button("Save Changes")
+
+                if submitted:
+                    partner_pref = "" if new_pref_sel == "— No preference —" else new_pref_sel
+                    try:
+                        update_player(pid, name=new_name, skill_rating=new_skill, partner_pref=partner_pref)
+                        st.success("Saved changes.")
+                        st.session_state[f"edit_player_{pid}"] = False
+                        st.experimental_rerun()
+                    except (ValueError, RuntimeError) as e:
+                        st.error(str(e))
 
