@@ -15,8 +15,13 @@ def add_player(name: str, skill_rating: float, partner_pref: str = "") -> int:
     name = name.strip()
     if not name:
         raise ValueError("Player name cannot be empty.")
-    if not (1.0 <= skill_rating <= 10.0):
+    try:
+        sr_raw = float(skill_rating)
+    except Exception:
+        raise ValueError("Skill rating must be a number between 1 and 10.")
+    if not (1.0 <= sr_raw <= 10.0):
         raise ValueError("Skill rating must be between 1 and 10.")
+    sr_int = int(round(sr_raw))
 
     df = load_sheet("Players")
 
@@ -28,7 +33,7 @@ def add_player(name: str, skill_rating: float, partner_pref: str = "") -> int:
     new_row = pd.DataFrame([{
         "player_id":    new_id,
         "name":         name,
-        "skill_rating": round(float(skill_rating), 1),
+        "skill_rating": sr_int,
         "team_id":      None,
         "partner_pref": partner_pref.strip(),
     }])
@@ -94,9 +99,14 @@ def update_player(player_id: int, name: str | None = None, skill_rating: float |
 
     # Validate and apply skill rating
     if skill_rating is not None:
-        if not (1.0 <= float(skill_rating) <= 10.0):
+        try:
+            sr_raw = float(skill_rating)
+        except Exception:
+            raise ValueError("Skill rating must be a number between 1 and 10.")
+        if not (1.0 <= sr_raw <= 10.0):
             raise ValueError("Skill rating must be between 1 and 10.")
-        df.loc[df["player_id"] == player_id, "skill_rating"] = round(float(skill_rating), 1)
+        sr_int = int(round(sr_raw))
+        df.loc[df["player_id"] == player_id, "skill_rating"] = sr_int
 
     # Apply partner preference (allow empty string to clear)
     if partner_pref is not None:

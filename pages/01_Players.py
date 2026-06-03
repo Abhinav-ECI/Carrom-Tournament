@@ -48,8 +48,8 @@ else:
             with col2:
                 skill = st.slider(
                     "Skill Rating",
-                    min_value=1.0, max_value=10.0,
-                    value=5.0, step=0.5,
+                    min_value=1, max_value=10,
+                    value=5, step=1,
                     help="1 = Beginner · 10 = Expert",
                 )
             pref_options = ["— No preference —"] + sorted(players_df["name"].tolist())
@@ -90,6 +90,9 @@ else:
         lambda x: "—" if (x is None or str(x) == "nan") else int(x)
     )
 
+    # Ensure Skill Rating displays as whole numbers
+    display["Skill Rating"] = pd.to_numeric(display["Skill Rating"], errors="coerce").fillna(0).astype(int)
+
     # Colour-code skill rating via background gradient
     render_df(
         grad_style(display.style, (["Skill Rating"], "skill", 1, 10)),
@@ -117,7 +120,14 @@ else:
         for _, row in players_df.iterrows():
             pid = int(row["player_id"])
             pname = str(row["name"]).strip()
-            pskill = row.get("skill_rating", "—")
+            raw_skill = row.get("skill_rating", None)
+            if raw_skill is None or str(raw_skill) in ("", "nan", "None"):
+                pskill = "—"
+            else:
+                try:
+                    pskill = int(float(raw_skill))
+                except Exception:
+                    pskill = raw_skill
             ppref = row.get("partner_pref", "") or "—"
 
             col_main, col_del, col_edit = st.columns([6, 1, 1])
@@ -153,12 +163,12 @@ else:
                 with st.form(f"edit_form_{pid}", clear_on_submit=False):
                     new_name = st.text_input("Name", value=pname, key=f"edit_name_{pid}")
                     try:
-                        cur_skill = float(pskill)
+                        cur_skill = int(float(pskill))
                     except Exception:
-                        cur_skill = 5.0
+                        cur_skill = 5
                     new_skill = st.slider(
                         "Skill Rating",
-                        min_value=1.0, max_value=10.0, value=cur_skill, step=0.5, key=f"edit_skill_{pid}"
+                        min_value=1, max_value=10, value=cur_skill, step=1, key=f"edit_skill_{pid}"
                     )
                     pref_options = ["— No preference —"] + [n for n in players_df["name"].tolist() if n != pname]
                     cur_pref_index = 0
