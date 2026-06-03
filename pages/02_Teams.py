@@ -72,13 +72,21 @@ if not teams_exist:
         preview_rows = []
         for i, (pid1, pid2) in enumerate(pairs):
             p1, p2 = players_map[pid1], players_map[pid2]
-            avg = round((float(p1["skill_rating"]) + float(p2["skill_rating"])) / 2, 2)
+            try:
+                s1 = int(float(p1["skill_rating"]))
+            except Exception:
+                s1 = 0
+            try:
+                s2 = int(float(p2["skill_rating"]))
+            except Exception:
+                s2 = 0
+            avg = int(round((s1 + s2) / 2))
             preview_rows.append({
                 "Team":      f"Team {chr(65 + i)}",
                 "Player 1":  _pref_label(p1, p2),
-                "Skill 1":   p1["skill_rating"],
+                "Skill 1":   s1,
                 "Player 2":  _pref_label(p2, p1),
-                "Skill 2":   p2["skill_rating"],
+                "Skill 2":   s2,
                 "Avg Skill": avg,
             })
 
@@ -90,7 +98,7 @@ if not teams_exist:
             st.caption("\U0001f7e2 pref met \u00b7 \U0001f7e1 pref not met")
         render_df(grad_style(preview_df.style, (["Avg Skill"], "skill", 1, 10)))
 
-        spread    = round(preview_df["Avg Skill"].max() - preview_df["Avg Skill"].min(), 2)
+        spread    = int(preview_df["Avg Skill"].max() - preview_df["Avg Skill"].min())
         prefs_met = sum(
             1 for r in preview_rows
             if "\U0001f7e2" in r["Player 1"] or "\U0001f7e2" in r["Player 2"]
@@ -168,7 +176,10 @@ else:
     for _, team in teams_df.iterrows():
         team_id   = int(team["team_id"])
         team_name = team["team_name"]
-        avg_skill = team["avg_skill"]
+        try:
+            avg_skill = int(round(float(team.get("avg_skill", 0))))
+        except Exception:
+            avg_skill = team.get("avg_skill", "—")
         wins      = int(team.get("wins", 0))
         losses    = int(team.get("losses", 0))
         is_elim   = bool(team.get("is_eliminated", False))
@@ -183,7 +194,7 @@ else:
                     cols[idx % 2].metric(
                         label=f"Player {idx + 1}",
                         value=p["name"],
-                        delta=f"Skill {p['skill_rating']}",
+                        delta=f"Skill {int(float(p.get('skill_rating', 0)))}",
                     )
             else:
                 st.caption("No players assigned.")
