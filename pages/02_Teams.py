@@ -199,22 +199,19 @@ else:
             else:
                 st.caption("No players assigned.")
 
-            # Rename form (locked once matches are scheduled)
-            if not matches_exist:
-                if auth.is_admin():
-                    with st.form(f"rename_{team_id}"):
-                        new_name = st.text_input("Rename team", value=team_name, max_chars=40)
-                        if st.form_submit_button("💾 Save Name"):
-                            try:
-                                rename_team(team_id, new_name)
-                                st.success(f"Renamed to **{new_name}**.")
-                                st.rerun()
-                            except (ValueError, RuntimeError) as e:
-                                st.error(str(e))
-                else:
-                    st.caption("Unlock admin to rename teams.")
+            # Rename form (admins may rename teams even after schedule is generated)
+            if auth.is_admin():
+                with st.form(f"rename_{team_id}", clear_on_submit=True):
+                    new_name = st.text_input("Rename team", value=team_name, max_chars=40, key=f"rename_input_{team_id}")
+                    if st.form_submit_button("💾 Save Name"):
+                        try:
+                            rename_team(team_id, new_name)
+                            st.success(f"Renamed to **{new_name}**.")
+                            st.rerun()
+                        except (ValueError, RuntimeError) as e:
+                            st.error(str(e))
             else:
-                st.caption("Team names are locked after the schedule is generated.")
+                st.caption("Unlock admin to rename teams.")
 
     st.markdown("---")
 
