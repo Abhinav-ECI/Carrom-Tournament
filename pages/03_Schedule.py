@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from modules.excel_sync import load_sheet
 from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points, set_match_scheduled_date
 from modules.ui_helpers import render_logo, date_badge
+from modules.team_builder import get_team_label_firstnames
 from modules import auth
 
 render_logo()
@@ -80,7 +81,10 @@ STATUS_BADGE = {
 def _team_label(tid):
     if tid is None or str(tid) == "nan":
         return "—"
-    return team_name.get(int(tid), f"Team {int(tid)}")
+    try:
+        return get_team_label_firstnames(int(tid))
+    except Exception:
+        return team_name.get(int(tid), f"Team {int(tid)}")
 
 
 # date_badge imported from ui_helpers

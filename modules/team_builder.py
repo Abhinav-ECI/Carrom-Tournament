@@ -199,6 +199,34 @@ def get_team_players(team_id: int) -> pd.DataFrame:
     return players_df[players_df["team_id"] == team_id].reset_index(drop=True)
 
 
+def get_team_label_firstnames(team_id: int) -> str:
+    """Return a display label for a team composed of player first names.
+
+    Examples:
+      - Two players: 'Abhinav & Sudeep'
+      - One player / fallback: team_name or 'Team {id}'
+    """
+    teams_df = load_sheet("Teams")
+    name_map = teams_df.set_index("team_id")["team_name"].to_dict() if not teams_df.empty else {}
+    players = get_team_players(team_id)
+    if players.empty:
+        return name_map.get(team_id, f"Team {team_id}")
+    first_names = []
+    for _, r in players.iterrows():
+        full = str(r.get("name") or "").strip()
+        if not full:
+            continue
+        first = full.split()[0]
+        first_names.append(first)
+    if not first_names:
+        return name_map.get(team_id, f"Team {team_id}")
+    if len(first_names) == 1:
+        return first_names[0]
+    if len(first_names) == 2:
+        return f"{first_names[0]} & {first_names[1]}"
+    return " & ".join(first_names)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

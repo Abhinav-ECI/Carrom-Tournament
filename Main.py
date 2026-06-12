@@ -14,6 +14,7 @@ import pandas as pd
 import streamlit as st
 from modules.excel_sync import init_workbook, load_sheet
 from modules.ui_helpers import render_logo, render_df, date_badge
+from modules.team_builder import get_team_label_firstnames
 from modules import auth
 
 # ---------------------------------------------------------------------------
@@ -104,10 +105,14 @@ def _home():
         ].sort_values(["round", "match_id"]).head(3)
 
         if not upcoming.empty and not teams_df.empty:
-            name_map = teams_df.set_index("team_id")["team_name"].to_dict()
             def _tn(tid):
-                if pd.isna(tid): return "—"
-                return name_map.get(int(tid), f"Team {int(tid)}")
+                if pd.isna(tid):
+                    return "—"
+                try:
+                    return get_team_label_firstnames(int(tid))
+                except Exception:
+                    name_map = teams_df.set_index("team_id")["team_name"].to_dict()
+                    return name_map.get(int(tid), f"Team {int(tid)}")
 
             st.markdown("##### ⚡ Upcoming Matches")
             for _, um in upcoming.iterrows():
@@ -175,10 +180,17 @@ def _home():
         if not matches_df.empty:
             done = matches_df[matches_df["status"] == "done"].copy()
             if not done.empty and not teams_df.empty:
-                name_map = teams_df.set_index("team_id")["team_name"].to_dict()
-                done["Team A"]  = done["team_a_id"].map(name_map)
-                done["Team B"]  = done["team_b_id"].map(name_map)
-                done["Winner"]  = done["winner_id"].map(name_map)
+                def _map_label(tid):
+                    if pd.isna(tid): return "—"
+                    try:
+                        return get_team_label_firstnames(int(tid))
+                    except Exception:
+                        name_map = teams_df.set_index("team_id")["team_name"].to_dict()
+                        return name_map.get(int(tid), f"Team {int(tid)}")
+
+                done["Team A"]  = done["team_a_id"].map(_map_label)
+                done["Team B"]  = done["team_b_id"].map(_map_label)
+                done["Winner"]  = done["winner_id"].map(_map_label)
                 done["Bracket"] = done["bracket"].str.capitalize()
                 recent = done[["round", "Team A", "Team B", "Winner", "Bracket"]].tail(5)
                 recent.columns = ["Round", "Team A", "Team B", "Winner", "Bracket"]
