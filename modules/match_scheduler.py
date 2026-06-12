@@ -164,6 +164,60 @@ def advance_bracket(completed_match_id: int) -> None:
             bracket="losers",
         ))
 
+    # Handle odd leftover byes: award a bye to the top-seeded team in the group
+    def _choose_bye(df_group: pd.DataFrame) -> int | None:
+        if df_group.empty:
+            return None
+        # Prefer team with highest wins, then highest avg_skill, then lowest team_id
+        df = df_group.copy()
+        df["wins"] = pd.to_numeric(df.get("wins", 0), errors="coerce").fillna(0).astype(int)
+        df["avg_skill"] = pd.to_numeric(df.get("avg_skill", 0), errors="coerce").fillna(0)
+        df = df.sort_values(["wins", "avg_skill", "team_id"], ascending=[False, False, True])
+        return int(df.iloc[0]["team_id"])
+
+    # If odd counts, give bye to chosen team and record an auto-win (bye)
+    if len(w_free) % 2 == 1:
+        bye_team = _choose_bye(w_free)
+        if bye_team is not None:
+            new_matches.append({
+                "match_id": base_id + len(new_matches),
+                "round": next_round,
+                "team_a_id": bye_team,
+                "team_b_id": None,
+                "winner_id": bye_team,
+                "loser_id": None,
+                "bracket": "winners",
+                "status": "bye",
+                "scheduled_date": None,
+                "date_played": None,
+                "team_a_score": None,
+                "team_b_score": None,
+            })
+            teams_df.loc[teams_df["team_id"] == bye_team, "wins"] = (
+                teams_df.loc[teams_df["team_id"] == bye_team, "wins"].fillna(0).astype(int) + 1
+            )
+
+    if len(l_free) % 2 == 1:
+        bye_team = _choose_bye(l_free)
+        if bye_team is not None:
+            new_matches.append({
+                "match_id": base_id + len(new_matches),
+                "round": next_round,
+                "team_a_id": bye_team,
+                "team_b_id": None,
+                "winner_id": bye_team,
+                "loser_id": None,
+                "bracket": "losers",
+                "status": "bye",
+                "scheduled_date": None,
+                "date_played": None,
+                "team_a_score": None,
+                "team_b_score": None,
+            })
+            teams_df.loc[teams_df["team_id"] == bye_team, "wins"] = (
+                teams_df.loc[teams_df["team_id"] == bye_team, "wins"].fillna(0).astype(int) + 1
+            )
+
     if new_matches:
         current = load_sheet("Matches")
         updated = pd.concat([current, pd.DataFrame(new_matches)], ignore_index=True)
