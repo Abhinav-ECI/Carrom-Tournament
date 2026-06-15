@@ -141,13 +141,6 @@ def _home():
         st.subheader("🏆 Team Standings")
         if not teams_df.empty:
             display = teams_df[["team_id", "team_name", "wins", "losses", "is_eliminated"]].copy()
-            # Add Players column showing teammates' first names (e.g. 'Abhinav & Sudeep')
-            def _players_label(tid):
-                try:
-                    return get_team_label_firstnames(int(tid))
-                except Exception:
-                    return "—"
-            display["Players"] = display["team_id"].apply(_players_label)
             display["wins"]   = pd.to_numeric(display["wins"],   errors="coerce").fillna(0).astype(int)
             display["losses"] = pd.to_numeric(display["losses"], errors="coerce").fillna(0).astype(int)
 
@@ -170,9 +163,7 @@ def _home():
                 lambda x: "❌ Eliminated" if (x is True or x == 1) else "✅ Active"
             )
             display = display.drop(columns=["is_eliminated", "team_id"])
-            # Reorder and rename columns to include Players
-            display = display[["team_name", "Players", "wins", "losses", "Points", "Status"]]
-            display.columns = ["Team", "Players", "Wins", "Losses", "Points", "Status"]
+            display.columns = ["Team", "Wins", "Losses", "Points", "Status"]
             display = (
                 display
                 .sort_values(["Points", "Wins", "Losses"], ascending=[False, False, True])
