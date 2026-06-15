@@ -48,8 +48,8 @@ else:
             with col2:
                 skill = st.slider(
                     "Skill Rating",
-                    min_value=1, max_value=10,
-                    value=5, step=1,
+                    min_value=1.0, max_value=10.0,
+                    value=5.0, step=0.5,
                     help="1 = Beginner · 10 = Expert",
                 )
             pref_options = ["— No preference —"] + sorted(players_df["name"].tolist())
@@ -90,9 +90,6 @@ else:
         lambda x: "—" if (x is None or str(x) == "nan") else int(x)
     )
 
-    # Ensure Skill Rating displays as whole numbers
-    display["Skill Rating"] = pd.to_numeric(display["Skill Rating"], errors="coerce").fillna(0).astype(int)
-
     # Colour-code skill rating via background gradient
     render_df(
         grad_style(display.style, (["Skill Rating"], "skill", 1, 10)),
@@ -108,56 +105,33 @@ else:
         st.success(f"{n} players registered — ready to build **{n // 2} teams** on the Teams page.")
 
     # ---------------------------------------------------------------------------
-    # Manage players (per-player edit controls)
+    # Manage players (per-player edit/delete controls)
     # ---------------------------------------------------------------------------
-    st.markdown("---")
-    st.subheader("Manage Players")
+    if not teams_locked:
+        st.markdown("---")
+        st.subheader("Manage Players")
 
-    if not auth.is_admin():
-        st.info("Unlock admin to edit or remove players.")
+        if not auth.is_admin():
+            st.info("Unlock admin to edit or remove players.")
 
-    for _, row in players_df.iterrows():
-        pid = int(row["player_id"])
-        pname = str(row["name"]).strip()
-        raw_skill = row.get("skill_rating", None)
-        if raw_skill is None or str(raw_skill) in ("", "nan", "None"):
-            pskill = "—"
-        else:
-            try:
-                pskill = int(float(raw_skill))
-            except Exception:
-                pskill = raw_skill
-        ppref = row.get("partner_pref", "") or "—"
+        for _, row in players_df.iterrows():
+            pid = int(row["player_id"])
+            pname = str(row["name"]).strip()
+            pskill = row.get("skill_rating", "—")
+            ppref = row.get("partner_pref", "") or "—"
 
-        # Ensure session_state keys exist so widget callbacks are allowed to write them.
-        for _k in (f"edit_name_only_{pid}", f"confirm_delete_{pid}", f"edit_player_{pid}"):
-            if _k not in st.session_state:
-                st.session_state[_k] = False
+            col_main, col_del, col_edit = st.columns([6, 1, 1])
+            with col_main:
+                st.markdown(f"**{pname}**  ·  Skill: **{pskill}**  ·  Pref: {ppref}")
 
-        col_main, col_del, col_edit = st.columns([6, 1, 1])
-        with col_main:
-            st.markdown(f"**{pname}**  ·  Skill: **{pskill}**  ·  Pref: {ppref}")
-
-        if auth.is_admin():
-            if teams_locked:
-                # When teams are locked, allow editing the player's name only
-                def _start_edit_name(pid=pid):
-                    st.session_state[f"edit_name_only_{pid}"] = True
-
-                col_edit.button("Edit Name", key=f"edit_name_only_{pid}", help=f"Edit name for {pname}", on_click=_start_edit_name)
-            else:
+            if auth.is_admin():
                 # Delete (cross) button
-                def _confirm_delete(pid=pid):
+                if col_del.button("✖", key=f"del_{pid}", help=f"Remove {pname}"):
                     st.session_state[f"confirm_delete_{pid}"] = True
 
-                # Delete (cross) button
-                col_del.button("✖", key=f"del_{pid}", help=f"Remove {pname}", on_click=_confirm_delete)
-
-                # Edit (pencil) button (full edit)
-                def _start_full_edit(pid=pid):
+                # Edit (pencil) button
+                if col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}"):
                     st.session_state[f"edit_player_{pid}"] = True
-
-                col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}", on_click=_start_full_edit)
 
             # Confirmation UI
             if st.session_state.get(f"confirm_delete_{pid}", False):
@@ -174,17 +148,17 @@ else:
                 if c2.button("Cancel", key=f"cancel_del_{pid}"):
                     st.session_state[f"confirm_delete_{pid}"] = False
 
-            # Full edit form (only when teams unlocked)
+            # Edit form
             if st.session_state.get(f"edit_player_{pid}", False):
                 with st.form(f"edit_form_{pid}", clear_on_submit=False):
                     new_name = st.text_input("Name", value=pname, key=f"edit_name_{pid}")
                     try:
-                        cur_skill = int(float(pskill))
+                        cur_skill = float(pskill)
                     except Exception:
-                        cur_skill = 5
+                        cur_skill = 5.0
                     new_skill = st.slider(
                         "Skill Rating",
-                        min_value=1, max_value=10, value=cur_skill, step=1, key=f"edit_skill_{pid}"
+                        min_value=1.0, max_value=10.0, value=cur_skill, step=0.5, key=f"edit_skill_{pid}"
                     )
                     pref_options = ["— No preference —"] + [n for n in players_df["name"].tolist() if n != pname]
                     cur_pref_index = 0
@@ -203,18 +177,4 @@ else:
                         st.experimental_rerun()
                     except (ValueError, RuntimeError) as e:
                         st.error(str(e))
-
-            # Name-only edit form (visible when teams are locked)
-            if st.session_state.get(f"edit_name_only_{pid}", False):
-                with st.form(f"edit_name_only_form_{pid}"):
-                    new_name_only = st.text_input("Edit Player Name", value=pname, key=f"edit_name_only_input_{pid}")
-                    save = st.form_submit_button("Save Name")
-                    if save:
-                        try:
-                            update_player(pid, name=new_name_only)
-                            st.success("Name updated.")
-                            st.session_state[f"edit_name_only_{pid}"] = False
-                            st.experimental_rerun()
-                        except (ValueError, RuntimeError) as e:
-                            st.error(str(e))
 
