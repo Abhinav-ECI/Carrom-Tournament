@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from modules.excel_sync import load_sheet
 from modules.match_scheduler import generate_schedule, reset_schedule, schedule_finals_by_points, set_match_scheduled_date
 from modules.ui_helpers import render_logo, date_badge
+from modules.team_builder import get_team_players
 from modules import auth
 
 render_logo()
@@ -80,7 +81,20 @@ STATUS_BADGE = {
 def _team_label(tid):
     if tid is None or str(tid) == "nan":
         return "—"
-    return team_name.get(int(tid), f"Team {int(tid)}")
+    tname = team_name.get(int(tid), f"Team {int(tid)}")
+    try:
+        players = get_team_players(int(tid))
+        firsts = []
+        for _, p in players.iterrows():
+            raw = str(p.get("name") or "").strip()
+            if raw:
+                firsts.append(raw.split()[0])
+        if firsts:
+            names_html = " &amp; ".join(firsts)
+            return f"<strong>{tname}</strong> <span style=\"font-style:italic;font-size:0.9em\">({names_html})</span>"
+    except Exception:
+        pass
+    return f"<strong>{tname}</strong>"
 
 
 # date_badge imported from ui_helpers
@@ -144,25 +158,25 @@ for _, row in display_df.iterrows():
     col_match, col_status, col_winner, col_date = st.columns([5, 2, 2, 3])
 
     if status == "bye":
-        col_match.markdown(f"**{team_a}** — *bye (auto-win)*")
+        col_match.markdown(f"{team_a} — <em>bye (auto-win)</em>", unsafe_allow_html=True)
         col_status.markdown(STATUS_BADGE["bye"])
-        col_winner.markdown(f"**{team_a}**")
+        col_winner.markdown(f"{team_a}", unsafe_allow_html=True)
     elif status == "done":
         sa = row.get("team_a_score", None)
         sb = row.get("team_b_score", None)
         score_str = ""
         if sa is not None and sb is not None and str(sa) != "nan" and str(sb) != "nan":
             score_str = f"  &nbsp;·&nbsp;  **{int(sa)} – {int(sb)}**"
-        col_match.markdown(f"**{team_a}**  vs  **{team_b}**{score_str}", unsafe_allow_html=True)
+        col_match.markdown(f"{team_a}  vs  {team_b}{score_str}", unsafe_allow_html=True)
         col_status.markdown(STATUS_BADGE["done"])
-        col_winner.markdown(f"🏆 **{winner}**")
+        col_winner.markdown(f"🏆 {winner}", unsafe_allow_html=True)
         # Show played date if available
         played = row.get("date_played", None)
         if played and str(played) not in ("", "nan", "None"):
             col_date.caption(f"Played {played}")
     else:
         # Scheduled / in-progress
-        col_match.markdown(f"**{team_a}**  vs  **{team_b}**")
+        col_match.markdown(f"{team_a}  vs  {team_b}", unsafe_allow_html=True)
         col_status.markdown(STATUS_BADGE.get(status, status))
         col_winner.markdown("—")
         # Date badge for viewers; date picker for admin
