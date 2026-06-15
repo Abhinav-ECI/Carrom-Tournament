@@ -108,16 +108,15 @@ else:
         st.success(f"{n} players registered — ready to build **{n // 2} teams** on the Teams page.")
 
     # ---------------------------------------------------------------------------
-    # Manage players (per-player edit/delete controls)
+    # Manage players (per-player edit controls)
     # ---------------------------------------------------------------------------
-    if not teams_locked:
-        st.markdown("---")
-        st.subheader("Manage Players")
+    st.markdown("---")
+    st.subheader("Manage Players")
 
-        if not auth.is_admin():
-            st.info("Unlock admin to edit or remove players.")
+    if not auth.is_admin():
+        st.info("Unlock admin to edit or remove players.")
 
-        for _, row in players_df.iterrows():
+    for _, row in players_df.iterrows():
             pid = int(row["player_id"])
             pname = str(row["name"]).strip()
             raw_skill = row.get("skill_rating", None)
@@ -135,13 +134,18 @@ else:
                 st.markdown(f"**{pname}**  ·  Skill: **{pskill}**  ·  Pref: {ppref}")
 
             if auth.is_admin():
-                # Delete (cross) button
-                if col_del.button("✖", key=f"del_{pid}", help=f"Remove {pname}"):
-                    st.session_state[f"confirm_delete_{pid}"] = True
+                if teams_locked:
+                    # When teams are locked, allow editing the player's name only
+                    if col_edit.button("Edit Name", key=f"edit_name_only_{pid}", help=f"Edit name for {pname}"):
+                        st.session_state[f"edit_name_only_{pid}"] = True
+                else:
+                    # Delete (cross) button
+                    if col_del.button("✖", key=f"del_{pid}", help=f"Remove {pname}"):
+                        st.session_state[f"confirm_delete_{pid}"] = True
 
-                # Edit (pencil) button
-                if col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}"):
-                    st.session_state[f"edit_player_{pid}"] = True
+                    # Edit (pencil) button (full edit)
+                    if col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}"):
+                        st.session_state[f"edit_player_{pid}"] = True
 
             # Confirmation UI
             if st.session_state.get(f"confirm_delete_{pid}", False):
@@ -158,7 +162,7 @@ else:
                 if c2.button("Cancel", key=f"cancel_del_{pid}"):
                     st.session_state[f"confirm_delete_{pid}"] = False
 
-            # Edit form
+            # Full edit form (only when teams unlocked)
             if st.session_state.get(f"edit_player_{pid}", False):
                 with st.form(f"edit_form_{pid}", clear_on_submit=False):
                     new_name = st.text_input("Name", value=pname, key=f"edit_name_{pid}")
@@ -187,4 +191,18 @@ else:
                         st.experimental_rerun()
                     except (ValueError, RuntimeError) as e:
                         st.error(str(e))
+
+            # Name-only edit form (visible when teams are locked)
+            if st.session_state.get(f"edit_name_only_{pid}", False):
+                with st.form(f"edit_name_only_form_{pid}"):
+                    new_name_only = st.text_input("Edit Player Name", value=pname, key=f"edit_name_only_input_{pid}")
+                    save = st.form_submit_button("Save Name")
+                    if save:
+                        try:
+                            update_player(pid, name=new_name_only)
+                            st.success("Name updated.")
+                            st.session_state[f"edit_name_only_{pid}"] = False
+                            st.experimental_rerun()
+                        except (ValueError, RuntimeError) as e:
+                            st.error(str(e))
 
