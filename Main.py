@@ -101,7 +101,7 @@ def _home():
         upcoming = matches_df[
             (matches_df["status"] == "scheduled") &
             (matches_df["bracket"].str.lower() != "bye")
-        ].sort_values(["round", "match_id"]).head(3)
+        ].sort_values(["round", "match_id"]).head(5)
 
         if not upcoming.empty and not teams_df.empty:
             name_map = teams_df.set_index("team_id")["team_name"].to_dict()
