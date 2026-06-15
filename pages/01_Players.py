@@ -135,8 +135,6 @@ else:
             col_main, col_del, col_edit = st.columns([6, 1, 1])
             with col_main:
                 st.markdown(f"**{pname}**  ·  Skill: **{pskill}**  ·  Pref: {ppref}")
-                if cur_pref_first:
-                    st.markdown(f"<div style='font-size:0.9rem;color:#6B7280'>Display first name: <strong>{cur_pref_first}</strong></div>", unsafe_allow_html=True)
 
             if auth.is_admin():
                 # Delete (cross) button
@@ -146,9 +144,6 @@ else:
                 # Edit (pencil) button
                 if col_edit.button("✎", key=f"edit_{pid}", help=f"Edit {pname}"):
                     st.session_state[f"edit_player_{pid}"] = True
-                # Visible edit-display button for preferred first name
-                if col_edit.button("Display", key=f"edit_display_btn_{pid}", help="Edit display first name"):
-                    st.session_state[f"edit_display_{pid}"] = True
 
             # Confirmation UI
             if st.session_state.get(f"confirm_delete_{pid}", False):
@@ -197,19 +192,4 @@ else:
                         st.experimental_rerun()
                     except (ValueError, RuntimeError) as e:
                         st.error(str(e))
-
-            # Small form to edit only the preferred first name (visible when requested)
-            if st.session_state.get(f"edit_display_{pid}", False):
-                with st.form(f"edit_display_form_{pid}"):
-                    cur_pref_first = row.get("preferred_first_name", "") or ""
-                    new_display = st.text_input("Preferred First Name", value=cur_pref_first, key=f"pref_first_{pid}")
-                    save = st.form_submit_button("Save Display Name")
-                    if save:
-                        try:
-                            update_player(pid, preferred_first_name=new_display)
-                            st.success("Display name updated.")
-                            st.session_state[f"edit_display_{pid}"] = False
-                            st.experimental_rerun()
-                        except (ValueError, RuntimeError) as e:
-                            st.error(str(e))
 
