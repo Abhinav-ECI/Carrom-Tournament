@@ -437,20 +437,41 @@ def render_logo() -> None:
     except Exception:
         pass
 
-    # Sync-to-GitHub button (admin only)
-        if auth.is_admin():
-            from modules.excel_sync import sync_to_github
-            if st.sidebar.button("☁️ Sync to GitHub", key="sidebar_sync", width="stretch"):
-                # Only sync the currently selected location when the admin
-                # explicitly clicks the sidebar button — background thread
-                # will still push other locations on its schedule.
-                result = sync_to_github(st.session_state.get("_location"))
+    # Admin actions (sync + cache clear)
+    if auth.is_admin():
+        from modules.excel_sync import sync_to_github
+
+        if st.sidebar.button("☁️ Sync to GitHub", key="sidebar_sync", width="stretch"):
+            # Only sync the currently selected location when the admin
+            # explicitly clicks the sidebar button — background thread
+            # will still push other locations on its schedule.
+            result = sync_to_github(st.session_state.get("_location"))
             if result["pushed"]:
                 st.sidebar.success(f"✅ Synced {len(result['pushed'])} sheet(s) to GitHub")
             elif result["failed"]:
                 st.sidebar.warning(f"⚠️ Sync failed for: {', '.join(result['failed'])}")
             else:
                 st.sidebar.info("Nothing to sync — data is up to date")
+
+        # Clear Streamlit caches + non-essential session state keys
+        def _clear_app_cache():
+            try:
+                st.cache_data.clear()
+            except Exception:
+                pass
+            try:
+                st.cache_resource.clear()
+            except Exception:
+                pass
+            # Preserve location selector and admin login state
+            preserve = {"_location", "_loc_select", "is_admin"}
+            for k in list(st.session_state.keys()):
+                if k not in preserve:
+                    st.session_state.pop(k, None)
+            st.experimental_rerun()
+
+        if st.sidebar.button("♻️ Clear cache & session", key="sidebar_clear_cache", width="stretch"):
+            _clear_app_cache()
 
     # Logo
     logo_file = None
