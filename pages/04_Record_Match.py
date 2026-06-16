@@ -264,7 +264,6 @@ with record_col:
     else:
         scheduled["label"] = scheduled.apply(
             lambda r: (
-                f"Match {int(r['match_id'])}  —  "
                 f"{_tname(r['team_a_id'])}  vs  {_tname(r['team_b_id'])}"
                 f"  (Round {int(r['round'])}, {str(r['bracket']).capitalize()})"
             ),
