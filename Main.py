@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
 import streamlit as st
-from modules.excel_sync import init_workbook, load_sheet
+from modules.excel_sync import init_workbook, load_sheet, LOCATIONS
 from modules.ui_helpers import render_logo, render_df, date_badge
 from modules.team_builder import get_team_players
 from modules import auth
